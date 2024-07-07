@@ -1,0 +1,25 @@
+application:
+  name: "currency-tracker"
+
+database:
+  influxdb:
+    url: "http://localhost:8086"
+    token: "Jtbw8RGSAHgYYsHwnS3lAIY9IIAu6BHup1VjYLaY-MhcFXQ_wUxiKti6TTzAsYNYIiEMB66p8SfvNTl_E5mYug=="
+    org: "Fibabanka"
+    bucket: "currency"
+    measurement:
+        currency: "currency"
+        gold: "gold"
+
+rest:
+  altinkaynak:
+    gold: "https://rest.altinkaynak.com/Gold.json"
+    currency: "https://rest.altinkaynak.com/Currency.json"
+
+http:
+  client:
+    timeout: 10 #seconds
+
+scheduler:
+  currency:
+    interval: '@every 10s'

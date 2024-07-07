@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gold Price Monitoring</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            flex-direction: column;
+        }
+        .container {
+            text-align: center;
+            width: 80%;
+        }
+        #priceChart {
+            max-width: 100%;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0"></script>
+    <script>
+        let chart;
+
+        async function fetchGoldPrices(goldName) {
+            try {
+                const response = await fetch(`/currency/gold/${goldName}`);
+                const data = await response.json();
+                return data.rates.map(rate => ({
+                    x: new Date(rate.timestamp),
+                    y: rate.price
+                }));
+            } catch (error) {
+                console.error('Error fetching gold prices:', error);
+                return [];
+            }
+        }
+
+        async function updateChart(goldName) {
+            console.log('Fetching data...');
+            const data = await fetchGoldPrices(goldName);
+            chart.data.labels = data.map(d => d.x);
+            chart.data.datasets[0].data = data.map(d => d.y);
+            chart.update();
+            console.log('Chart updated');
+        }
+
+        function onLoad() {
+            const ctx = document.getElementById('priceChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Gold Price',
+                        data: [],
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 2,
+                        fill: false,
+                        cubicInterpolationMode: 'monotone',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'minute',
+                                stepSize: 1,
+                                displayFormats: {
+                                    minute: 'HH:mm:ss'
+                                },
+                                tooltipFormat: 'll HH:mm:ss'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            }
+                        },
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'Price'
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    var label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += new Intl.NumberFormat('en-US', {
+                                            style: 'currency',
+                                            currency: 'USD'
+                                        }).format(context.parsed.y);
+                                    }
+                                    return label;
+                                },
+                                footer: function(tooltipItems) {
+                                    return 'Time: ' + moment(tooltipItems[0].parsed.x).format('YYYY-MM-DD HH:mm:ss');
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            document.getElementById('fetchButton').addEventListener('click', () => {
+                const goldName = document.getElementById('goldName').value;
+                updateChart(goldName); // İlk veriyi hemen yükle
+                setInterval(() => updateChart(goldName), 5000); // Her 5 saniyede bir API çağrısı yap
+            });
+        }
+
+        window.onload = onLoad;
+    </script>
+</head>
+<body>
+<div class="container">
+    <h1>Gold Price Monitoring</h1>
+    <label for="goldName">Gold Type:</label>
+    <input type="text" id="goldName" placeholder="e.g., 24K">
+    <button id="fetchButton">Start Monitoring</button>
+    <canvas id="priceChart"></canvas>
+</div>
+</body>
+</html>
